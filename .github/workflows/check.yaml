@@ -21,8 +21,8 @@ jobs:
           extra-repositories: "https://rse.pik-potsdam.de/r/packages"
 
       - uses: r-lib/actions/setup-r-dependencies@v2
-        cache: always
         with:
+          cache: always
           extra-packages: |
             lucode2
             covr
