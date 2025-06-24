@@ -18,7 +18,7 @@
 #' @export
 checkNoTabs <- function(pattern, exclude = NULL, excludeFolders = NULL) {
   folders <- normalizePath(list.dirs(".", recursive = FALSE))
-  if (!is.null(excludeFolders)) {
+  if (!is.null(excludeFolders)) { 
     folders <- setdiff(folders, normalizePath(excludeFolders, mustWork = FALSE))
   }
   filesToCheck <- c(list.files(folders, pattern = pattern,
