@@ -8,7 +8,7 @@
 #' \code{\link{readDeclarations}}
 #' @return vector of warnings
 #' @author Jan Philipp Dietrich
-#' @export
+#' @export 
 #' @seealso \code{\link{codeCheck}}
 checkDescription <- function(x, w=NULL) {
   
