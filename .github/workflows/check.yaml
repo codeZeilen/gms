@@ -22,7 +22,6 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          cache: always
           extra-packages: |
             lucode2
             covr
@@ -39,6 +38,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: 3.9
+          cache: 'pip'
+          cache-dependency-path: .pre-commit-config.yaml
 
       - name: Install python dependencies if applicable
         run: |
