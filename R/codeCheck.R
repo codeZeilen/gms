@@ -25,7 +25,7 @@
 #' it will provide a table containing all declarations in the code, an appearance table listing the appearance of all
 #' objects in the code and information about the existing modules. The format is
 #' list(interfaceInfo,declarations,appearance,modulesInfo). This setting will be ignored
-#' when returnDebug is set to TRUE.
+#' when returnDebug is set to TRUE.  
 #' @return A list of all modules containing the interfaces for each module. Or more detailed output if either
 #' \code{details} or \code{returnDebug} is set to TRUE.
 #' @author Jan Philipp Dietrich
