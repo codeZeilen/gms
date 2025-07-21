@@ -8,7 +8,8 @@ on:
 
 jobs:
   check:
-    runs-on: codezeilen/pik-piam-test-image:latest
+    runs-on: ubuntu-latest 
+    container: codezeilen/pik-piam-test-image:latest
 
     steps:
       - uses: actions/checkout@v4
