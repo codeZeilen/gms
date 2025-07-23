@@ -6,10 +6,6 @@ on:
   pull_request:
     branches: [main, master]
 
-env:
-  R_LIBS_SITE: "/usr/local/app/lib"
-  R_LIBS_USER: "/usr/local/app/user-lib"
-
 jobs:
   check:
     runs-on: ubuntu-latest 
