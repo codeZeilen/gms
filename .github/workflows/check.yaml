@@ -36,6 +36,10 @@ jobs:
           # gms, goxygen, GDPuc) will usually have an outdated binary version
           # available; by using extra-packages we get the newest version
 
+      - uses: actions/checkout@v4
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+
       - name: Run pre-commit checks
         shell: bash
         run: |
