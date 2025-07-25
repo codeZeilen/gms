@@ -39,6 +39,8 @@ jobs:
           # piam packages also available on CRAN (madrat, magclass, citation,
           # gms, goxygen, GDPuc) will usually have an outdated binary version
           # available; by using extra-packages we get the newest version
+        env: 
+          R_LIBS_USER: '__w/base/PreinstallLibrary'
 
       - uses: actions/checkout@v4
 
