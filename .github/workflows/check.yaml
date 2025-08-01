@@ -25,6 +25,9 @@ jobs:
           use-public-rspm: true
           extra-repositories: "https://rse.pik-potsdam.de/r/packages"
 
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           extra-packages: |
