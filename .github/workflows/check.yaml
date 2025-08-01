@@ -7,8 +7,8 @@ on:
     branches: [main, master]
 
 env:
-  R_LIBS_SITE: '/__w/base/SiteLibrary'
-  R_LIBS_USER: '/__w/base/PreinstallLibrary'
+  R_LIBS_SITE: '/__m/prepared/SiteLibrary'
+  R_LIBS_USER: '/__m/prepared/PreinstallLibrary'
 
 jobs:
   check:
@@ -43,7 +43,8 @@ jobs:
           # gms, goxygen, GDPuc) will usually have an outdated binary version
           # available; by using extra-packages we get the newest version
         env: 
-          R_LIBS_USER: '__w/base/PreinstallLibrary'
+          R_LIBS_SITE: '/__m/prepared/SiteLibrary'
+          R_LIBS_USER: '/__m/prepared/PreinstallLibrary'
 
       - uses: actions/checkout@v4
 
