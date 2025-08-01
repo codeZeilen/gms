@@ -8,7 +8,7 @@ on:
 
 env:
   R_LIBS_SITE: '/__m/prepared/SiteLibrary'
-  R_LIBS_USER: '/__m/prepared/PreinstallLibrary'
+  R_LIBS_USER: '/__m/prepared/Library'
 
 jobs:
   check:
@@ -25,6 +25,11 @@ jobs:
           use-public-rspm: true
           extra-repositories: "https://rse.pik-potsdam.de/r/packages"
 
+      - name: Hard-reset the lib USER lib path
+        shell: bash
+        run:
+          export R_LIBS_USER=/__m/prepared/Library
+
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           lockfile-create-lib: '.libPaths()[1]'
@@ -40,9 +45,12 @@ jobs:
           # piam packages also available on CRAN (madrat, magclass, citation,
           # gms, goxygen, GDPuc) will usually have an outdated binary version
           # available; by using extra-packages we get the newest version
+        env: 
+          R_LIBS_SITE: '/__m/prepared/SiteLibrary'
+          R_LIBS_USER: '/__m/prepared/Library'
 
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
+      # - name: Setup tmate session
+      #   uses: mxschmitt/action-tmate@v3
 
       - uses: actions/checkout@v4
 
