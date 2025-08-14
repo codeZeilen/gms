@@ -58,6 +58,7 @@ jobs:
           lucode2::check(runLinter = FALSE)
 
       - name: Test coverage
+        if: ${{ github.event_name != 'pull_request' }}
         shell: Rscript {0}
         run: |
           nonDummyTests <- setdiff(list.files("./tests/testthat/"), c("test-dummy.R", "_snaps"))
