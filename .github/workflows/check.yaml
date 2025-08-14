@@ -49,7 +49,9 @@ jobs:
           R_LIBS_SITE: '/__m/prepared/SiteLibrary'
           R_LIBS_USER: '/__m/prepared/Library'
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+        with:
+          set-safe-directory: true
 
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
