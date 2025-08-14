@@ -49,10 +49,10 @@ jobs:
           R_LIBS_SITE: '/__m/prepared/SiteLibrary'
           R_LIBS_USER: '/__m/prepared/Library'
 
-      # - name: Setup tmate session
-      #   uses: mxschmitt/action-tmate@v3
-
       - uses: actions/checkout@v4
+
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
 
       - name: Run pre-commit checks
         shell: bash
