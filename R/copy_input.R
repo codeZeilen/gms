@@ -17,6 +17,7 @@ copy_input <- function(x, sourcepath, suffix = NULL, move = FALSE) { #nolint
     map <- read.csv(x, sep = ";", stringsAsFactors = FALSE)
   } else {
     map <- x
+    map
   }
   x <- map$file
   names(x) <- map$destination
