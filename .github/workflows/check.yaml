@@ -58,12 +58,12 @@ jobs:
           python3 -m pip freeze --local
           pre-commit run --show-diff-on-failure --color=always --all-files
 
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+
       - name: Verify validation key
         shell: Rscript {0}
         run: lucode2:::validkey(stopIfInvalid = TRUE)
-
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
 
       - name: Verify that lucode2::buildLibrary was successful
         if: github.event_name == 'pull_request'
