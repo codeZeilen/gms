@@ -62,6 +62,9 @@ jobs:
         shell: Rscript {0}
         run: lucode2:::validkey(stopIfInvalid = TRUE)
 
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+
       - name: Verify that lucode2::buildLibrary was successful
         if: github.event_name == 'pull_request'
         shell: Rscript {0}
