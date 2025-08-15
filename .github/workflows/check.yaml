@@ -58,8 +58,10 @@ jobs:
           python3 -m pip freeze --local
           pre-commit run --show-diff-on-failure --color=always --all-files
 
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
+      - name: Hard-reset the lib USER lib path
+        shell: bash
+        run:
+          export R_LIBS_USER=/__m/prepared/Library
 
       - name: Verify validation key
         shell: Rscript {0}
