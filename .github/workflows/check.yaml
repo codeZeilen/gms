@@ -16,7 +16,9 @@ jobs:
     container: codezeilen/pik-piam-test-image:latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+        with:
+          set-safe-directory: true
 
       - uses: r-lib/actions/setup-pandoc@v2
 
@@ -49,10 +51,6 @@ jobs:
           R_LIBS_SITE: '/__m/prepared/SiteLibrary'
           R_LIBS_USER: '/__m/prepared/Library'
 
-      - uses: actions/checkout@v5
-        with:
-          set-safe-directory: true
-
       - name: Run pre-commit checks
         shell: bash
         run: |
@@ -68,6 +66,9 @@ jobs:
         if: github.event_name == 'pull_request'
         shell: Rscript {0}
         run: lucode2:::isVersionUpdated()
+        env: 
+          R_LIBS_SITE: '/__m/prepared/SiteLibrary'
+          R_LIBS_USER: '/__m/prepared/Library'
 
       - name: Checks
         shell: Rscript {0}
