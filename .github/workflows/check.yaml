@@ -6,12 +6,19 @@ on:
   pull_request:
     branches: [main, master]
 
+env:
+  R_LIBS_SITE: '/__m/prepared/SiteLibrary'
+  R_LIBS_USER: '/__m/prepared/Library'
+
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest 
+    container: codezeilen/pik-piam-test-image:latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+        with:
+          set-safe-directory: true
 
       - uses: r-lib/actions/setup-pandoc@v2
 
@@ -20,8 +27,14 @@ jobs:
           use-public-rspm: true
           extra-repositories: "https://rse.pik-potsdam.de/r/packages"
 
+      - name: Hard-reset the lib USER lib path
+        shell: bash
+        run:
+          export R_LIBS_USER=/__m/prepared/Library
+
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
+          lockfile-create-lib: '.libPaths()[1]'
           extra-packages: |
             lucode2
             covr
@@ -34,13 +47,21 @@ jobs:
           # piam packages also available on CRAN (madrat, magclass, citation,
           # gms, goxygen, GDPuc) will usually have an outdated binary version
           # available; by using extra-packages we get the newest version
+        env: 
+          R_LIBS_SITE: '/__m/prepared/SiteLibrary'
+          R_LIBS_USER: '/__m/prepared/Library'
 
       - name: Run pre-commit checks
         shell: bash
         run: |
-          python -m pip install pre-commit
-          python -m pip freeze --local
+          python3 -m pip install pre-commit
+          python3 -m pip freeze --local
           pre-commit run --show-diff-on-failure --color=always --all-files
+
+      - name: Hard-reset the lib USER lib path
+        shell: bash
+        run:
+          export R_LIBS_USER=/__m/prepared/Library
 
       - name: Verify validation key
         shell: Rscript {0}
@@ -50,6 +71,9 @@ jobs:
         if: github.event_name == 'pull_request'
         shell: Rscript {0}
         run: lucode2:::isVersionUpdated()
+        env: 
+          R_LIBS_SITE: '/__m/prepared/SiteLibrary'
+          R_LIBS_USER: '/__m/prepared/Library'
 
       - name: Checks
         shell: Rscript {0}
