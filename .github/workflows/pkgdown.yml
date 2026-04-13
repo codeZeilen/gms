@@ -12,9 +12,9 @@ name: pkgdown.yaml
 
 permissions: read-all
 
-env:
-  R_LIBS_SITE: '/__m/prepared/SiteLibrary'
-  R_LIBS_USER: '/__m/prepared/Library'
+#env:
+#  R_LIBS_SITE: '/__m/prepared/SiteLibrary'
+#  R_LIBS_USER: '/__m/prepared/Library'
 
 jobs:
   pkgdown:
@@ -27,7 +27,7 @@ jobs:
     permissions:
       contents: write
     container:
-      image: ghcr.io/codezeilen/pkgdown-image:v5
+      image: ghcr.io/codezeilen/pkgdown-image:v6
     steps:
       - uses: actions/checkout@v4
 
