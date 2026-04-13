@@ -27,7 +27,7 @@ jobs:
     permissions:
       contents: write
     container:
-      image: ghcr.io/codezeilen/pkgdown-image:v4
+      image: ghcr.io/codezeilen/pkgdown-image:v5
     steps:
       - uses: actions/checkout@v4
 
