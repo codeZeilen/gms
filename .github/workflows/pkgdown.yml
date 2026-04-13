@@ -12,6 +12,10 @@ name: pkgdown.yaml
 
 permissions: read-all
 
+env:
+  R_LIBS_SITE: '/__m/prepared/SiteLibrary'
+  R_LIBS_USER: '/__m/prepared/Library'
+
 jobs:
   pkgdown:
     runs-on: ubuntu-latest
