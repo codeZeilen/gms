@@ -77,10 +77,10 @@ Jan Philipp Dietrich, David Klein, Mika Pflüger
 ``` r
 #lock folder
 id <- model_lock(tempdir())
-#> 2026-04-13 10:43:25: try to acquire model lock...
-#> 2026-04-13 10:43:25: acquired model lock in 0 secs.
+#> 2026-04-13 11:31:37: try to acquire model lock...
+#> 2026-04-13 11:31:37: acquired model lock in 0 secs.
 
 #unlock folder
 model_unlock(id)
-#> 2026-04-13 10:43:25: unlocked model.
+#> 2026-04-13 11:31:37: unlocked model.
 ```
