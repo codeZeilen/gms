@@ -38,10 +38,9 @@ jobs:
       #     use-public-rspm: true
       #     extra-repositories: "https://rse.pik-potsdam.de/r/packages"
 
-      - uses: r-lib/actions/setup-r-dependencies@v2
-        with:
-          extra-packages: local::.
-          needs: website
+      - name: Install dependencies
+        run: pak::local_install_deps(dependencies=c("Config/Needs/website", "all"))
+        shell: Rscript {0}
 
       - name: Build site
         run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
