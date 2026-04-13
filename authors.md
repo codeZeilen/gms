@@ -31,8 +31,8 @@ Source:
 [`inst/CITATION`](https://github.com/pik-piam/gms/blob/master/inst/CITATION)
 
 Dietrich J, Klein D, Giannousakis A, Beier F, Koch J, Baumstark L,
-Pflüger M, Richters O (2025). *gms: 'GAMS' Modularization Support
-Package*. R package version 0.33.6.
+Pfl\<U+00FC\>ger M, Richters O (2025). *gms: 'GAMS' Modularization
+Support Package*. R package version 0.33.6.
 
     @Manual{,
       title = {gms: 'GAMS' Modularization Support Package},
