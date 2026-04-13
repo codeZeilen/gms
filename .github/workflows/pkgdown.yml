@@ -39,7 +39,7 @@ jobs:
       #     extra-repositories: "https://rse.pik-potsdam.de/r/packages"
 
       - name: Install dependencies
-        run: options(repos = c(CRAN = Sys.getenv('RSPM'))); pak::local_install_deps(dependencies=c("Config/Needs/website", "all"))
+        run: options(repos = c(CRAN = Sys.getenv('RSPM'))); pak::pak(".", dependencies=c("Config/Needs/website", "all"))
         shell: Rscript {0}
         env:
           RSPM: 'https://packagemanager.posit.co/cran/__linux__/noble/latest'
