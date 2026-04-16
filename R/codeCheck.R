@@ -162,7 +162,7 @@ codeCheck <- function(path = ".",
       })
 
       w <- .warning(
-        "sets with duplicated item ", d, ": ",
+        "set item '", d, "' has inconsistent capitalization. please check the sets: ",
         paste0(names(allSets[indices]), collapse = ", "),
         w = w
       )
