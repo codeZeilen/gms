@@ -150,6 +150,27 @@ codeCheck <- function(path = ".",
     return(list(gams = gams, w = w))
   }
 
+  # check if any set items appear with different capitalization in the code
+  .checkSetDuplicates <- function(gams, w) {
+    allSets <- gams$sets
+    setItems <- unique(unlist(allSets))
+    duplicatedSetItems <- tolower(setItems[duplicated(tolower(setItems))])
+
+    for (d in duplicatedSetItems) {
+      indices <- sapply(names(allSets), function(y) {
+        length(intersect(d, tolower(allSets[[y]]))) > 0
+      })
+
+      w <- .warning(
+        "sets with duplicated item ", d, ": ",
+        paste0(names(allSets[indices]), collapse = ", "),
+        w = w
+      )
+    }
+
+    return(w)
+  }
+
   .getInterfaceInfo <- function(ap, gams, w) {
     # setting up a list of used interfaces for each module
     interfaceInfo <- list()
@@ -235,29 +256,7 @@ codeCheck <- function(path = ".",
     capitalExclusionList <- read_yaml(file.path(path, ".codeCheck"))[["capitalExclusionList"]]
   }
 
-  # TODO: move to the right spot in the code
-  # TODO: make optional or add know duplicates
-
-  # check if any set items appear with different capitalization in the code
-  .checkSetDuplicates <- function(allSets){
-
-    setItems <- unique(unlist(allSets))
-    duplicatedSetItems <- tolower(setItems[duplicated(tolower(setItems))])
-
-
-    for (d in duplicatedSetItems) {
-      indices <- sapply(names(allSets), function(y) {
-        length(intersect(d, tolower(allSets[[y]]))) > 0}
-      )
-
-      print(paste0("sets with duplicated item ", d, ": "))
-      print(allSets[indices])
-    }
-
-  }
-
-  .checkSetDuplicates(gams$sets)
-  return()
+  w <- .checkSetDuplicates(gams = gams, w = w)
 
   ap <- checkAppearance(gams, capitalExclusionList = capitalExclusionList)
   w <- c(w, ap$warnings)

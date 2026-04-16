@@ -3,12 +3,12 @@
 #' Parses the sets for a given code file and stores them in a named list.
 #'
 #' @param codeFile a GAMS code file
-#' @param name A name indicating what collection of code files this is (e.g.
-#' module name)
 #' @param warn A boolean indicating if warnings should be displayed when parsing
-#' sections fails
+#' a sections fails
+#' @param name A name indicating what collection of code files this is (e.g.
+#' module name). Only needed for more expressive warnings.
 #' @author Falk Benke
-readSetItems <- function(codeFile, name = NULL, warn = FALSE) {
+readSetItems <- function(codeFile, warn = FALSE, name = NULL) {
   d <- GAMScodeFilter(readFileOrVector(codeFile))
 
   endings <- grep(";[   ]*(!!|$)", d)
