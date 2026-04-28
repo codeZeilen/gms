@@ -17,7 +17,10 @@ jobs:
 
       - name: Install
         shell: Rscript {0}
-        run: pak::pak()
+        run: |
+          options(repos = c(pikpiam = 'https://pik-piam.r-universe.dev',
+                            CRAN = Sys.getenv('RSPM')))
+          pak::pak()
           
       - name: Run pre-commit checks
         shell: bash
