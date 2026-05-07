@@ -1,8 +1,8 @@
 Package: gms
 Type: Package
 Title: 'GAMS' Modularization Support Package
-Version: 0.33.8
-Date: 2026-04-16
+Version: 0.33.9
+Date: 2026-05-07
 Authors@R: c(person("Jan Philipp", "Dietrich", email = "dietrich@pik-potsdam.de", 
              comment = c(affiliation = "Potsdam Institute for Climate Impact Research", ORCID = "0000-0002-4309-6431"), role = c("aut","cre")),
              person("David", "Klein", comment = c(affiliation = "Potsdam Institute for Climate Impact Research"), role = "aut"),
@@ -38,6 +38,6 @@ BugReports: https://github.com/pik-piam/gms/issues
 License: BSD_2_clause + file LICENSE
 LazyData: no
 Encoding: UTF-8
-RoxygenNote: 7.3.3
 Config/Keywords: tool
 Config/Needs/website: tidyverse/tidytemplate
+Config/roxygen2/version: 8.0.0

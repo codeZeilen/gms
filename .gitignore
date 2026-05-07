@@ -27,3 +27,4 @@ vignettes/*.pdf
 inst/doc
 # pycharm IDE files
 .idea/
+.positai
