@@ -151,12 +151,15 @@ codeCheck <- function(path = ".",
   }
 
   # check if any set items appear with different capitalization in the code
-  .checkSetDuplicates <- function(gams, w) {
+  .checkSetDuplicates <- function(gams, capitalExclusionList, w) {
+
     allSets <- gams$sets
     setItems <- unique(unlist(allSets))
     duplicatedSetItems <- tolower(setItems[duplicated(tolower(setItems))])
+    duplicatedSetItems <- setdiff(duplicatedSetItems, capitalExclusionList)
 
     for (d in duplicatedSetItems) {
+
       indices <- sapply(names(allSets), function(y) {
         length(intersect(d, tolower(allSets[[y]]))) > 0
       })
@@ -256,7 +259,7 @@ codeCheck <- function(path = ".",
     capitalExclusionList <- read_yaml(file.path(path, ".codeCheck"))[["capitalExclusionList"]]
   }
 
-  w <- .checkSetDuplicates(gams = gams, w = w)
+  w <- .checkSetDuplicates(gams = gams, capitalExclusionList = capitalExclusionList, w = w)
 
   ap <- checkAppearance(gams, capitalExclusionList = capitalExclusionList)
   w <- c(w, ap$warnings)

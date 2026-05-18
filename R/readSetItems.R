@@ -66,6 +66,7 @@ readSetItems <- function(codeFile, warn = FALSE, name = NULL) {
     items <- tmp[grep("^/.*/$", tmp)]
     if (length(items) > 0) {
       items <- strsplit(gsub("/ *", "", items), ",")
+      items <- lapply(items, trimws)
       names(items) <- tmp[grep("^/.*/$", tmp) - 1]
       setList <- c(setList, items)
       # drop parsed sets

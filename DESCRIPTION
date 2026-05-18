@@ -2,7 +2,7 @@ Package: gms
 Type: Package
 Title: 'GAMS' Modularization Support Package
 Version: 0.33.9
-Date: 2026-05-07
+Date: 2026-05-18
 Authors@R: c(person("Jan Philipp", "Dietrich", email = "dietrich@pik-potsdam.de", 
              comment = c(affiliation = "Potsdam Institute for Climate Impact Research", ORCID = "0000-0002-4309-6431"), role = c("aut","cre")),
              person("David", "Klein", comment = c(affiliation = "Potsdam Institute for Climate Impact Research"), role = "aut"),
