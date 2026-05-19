@@ -93,7 +93,7 @@ codeCheck <- function(path = ".",
                                name = paste(m["name"], j, sep = "."))
             modules$code <- c(modules$code, tmp$code)
             modules$declarations <- rbind(modules$declarations, tmp$declarations)
-            modules$sets <- append(modules$sets, tmp$sets)
+            modules$sets <- c(modules$sets, tmp$sets)
             notUsedPath <- paste0(path, "/", modulepath, "/", m["folder"], "/", j, "/not_used.txt")
             if (file.exists(notUsedPath)) {
                 tmp <- as.matrix(suppressWarnings(read.csv(notUsedPath, as.is = TRUE, comment.char = "#")))
@@ -105,7 +105,7 @@ codeCheck <- function(path = ".",
 
     gams <- list(code = c(core$code, modules$code),
                  declarations = rbind(core$declarations, modules$declarations),
-                 sets = append(core$sets, modules$sets),
+                 sets = c(core$sets, modules$sets),
                  not_used = modules$not_used)
     return(gams)
   }
@@ -161,7 +161,7 @@ codeCheck <- function(path = ".",
     for (d in duplicatedSetItems) {
 
       indices <- sapply(names(allSets), function(y) {
-        length(intersect(d, tolower(allSets[[y]]))) > 0
+        d %in% tolower(allSets[[y]])
       })
 
       w <- .warning(
