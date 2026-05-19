@@ -93,6 +93,7 @@ codeCheck <- function(path = ".",
                                name = paste(m["name"], j, sep = "."))
             modules$code <- c(modules$code, tmp$code)
             modules$declarations <- rbind(modules$declarations, tmp$declarations)
+            modules$sets <- c(modules$sets, tmp$sets)
             notUsedPath <- paste0(path, "/", modulepath, "/", m["folder"], "/", j, "/not_used.txt")
             if (file.exists(notUsedPath)) {
                 tmp <- as.matrix(suppressWarnings(read.csv(notUsedPath, as.is = TRUE, comment.char = "#")))
@@ -104,6 +105,7 @@ codeCheck <- function(path = ".",
 
     gams <- list(code = c(core$code, modules$code),
                  declarations = rbind(core$declarations, modules$declarations),
+                 sets = c(core$sets, modules$sets),
                  not_used = modules$not_used)
     return(gams)
   }
@@ -146,6 +148,30 @@ codeCheck <- function(path = ".",
       }
     }
     return(list(gams = gams, w = w))
+  }
+
+  # check if any set items appear with different capitalization in the code
+  .checkSetDuplicates <- function(gams, capitalExclusionList, w) {
+
+    allSets <- gams$sets
+    setItems <- unique(unlist(allSets))
+    duplicatedSetItems <- tolower(setItems[duplicated(tolower(setItems))])
+    duplicatedSetItems <- setdiff(duplicatedSetItems, capitalExclusionList)
+
+    for (d in duplicatedSetItems) {
+
+      indices <- sapply(names(allSets), function(y) {
+        d %in% tolower(allSets[[y]])
+      })
+
+      w <- .warning(
+        "set item '", d, "' has inconsistent capitalization. please check the sets: ",
+        paste0(names(allSets[indices]), collapse = ", "),
+        w = w
+      )
+    }
+
+    return(w)
   }
 
   .getInterfaceInfo <- function(ap, gams, w) {
@@ -232,6 +258,8 @@ codeCheck <- function(path = ".",
     # read in exclusions for capitalization check from .codeCheck
     capitalExclusionList <- read_yaml(file.path(path, ".codeCheck"))[["capitalExclusionList"]]
   }
+
+  w <- .checkSetDuplicates(gams = gams, capitalExclusionList = capitalExclusionList, w = w)
 
   ap <- checkAppearance(gams, capitalExclusionList = capitalExclusionList)
   w <- c(w, ap$warnings)
