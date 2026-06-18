@@ -65,6 +65,16 @@ check_config <- function(icfg, reference_file = "config/default.cfg", modulepath
     }
   }
 
+  # check title for invalid characters
+  if (!is.null(icfg$title)) {
+    if (grepl("\\s", icfg$title)) {
+      stop("cfg$title must not contain whitespace characters", call. = FALSE)
+    }
+    if (anyNA(iconv(icfg$title, to = "ASCII"))) {
+      stop("cfg$title must only contain ASCII characters", call. = FALSE)
+    }
+  }
+
   missingSettings <- setdiff(names(cfg), names(icfg))
   extraSettings   <- setdiff(names(icfg), .extendedNames(cfg))
 
