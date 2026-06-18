@@ -22,6 +22,22 @@ test_that("config check fails if module realization does not exist", {
                "Chosen realization \"hallo\" does not exist for module \"fancymodule\"")
 })
 
+test_that("config check fails if title contains whitespace", {
+  cfg <- list(title = "my title", gms = list(switch1 = TRUE, switch2 = 1, fancymodule = "default",
+                                             crazymodule = "simple", Rmodule = "withr"))
+  expect_error(check_config(cfg, reference_file = cfg,
+                            modulepath = system.file("dummymodel/modules/", package = "gms")),
+               "cfg\\$title must not contain whitespace characters")
+})
+
+test_that("config check fails if title contains non-ASCII characters", {
+  cfg <- list(title = "törtchen", gms = list(switch1 = TRUE, switch2 = 1, fancymodule = "default",
+                                             crazymodule = "simple", Rmodule = "withr"))
+  expect_error(check_config(cfg, reference_file = cfg,
+                            modulepath = system.file("dummymodel/modules/", package = "gms")),
+               "cfg\\$title must only contain ASCII characters")
+})
+
 test_that("config check accepts extras as argument", {
   cfg <- list(title = "default", gms = list(switch1 = TRUE, switch2 = 1,
               fancymodule = "default", crazymodule = "simple", Rmodule = "withr"))

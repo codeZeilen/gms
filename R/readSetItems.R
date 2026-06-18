@@ -7,6 +7,7 @@
 #' a sections fails
 #' @param name A name indicating what collection of code files this is (e.g.
 #' module name). Only needed for more expressive warnings.
+#' @keywords internal
 #' @author Falk Benke
 readSetItems <- function(codeFile, warn = FALSE, name = NULL) {
   d <- GAMScodeFilter(readFileOrVector(codeFile))
