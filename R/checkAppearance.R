@@ -42,26 +42,16 @@ checkAppearance <- function(x, capitalExclusionList = NULL) {
   tmp <- grep("execute_load", x$code, ignore.case = TRUE)
   x$code[tmp] <- gsub("=[^,]*", "", x$code[tmp])
 
-  tmp <- sapply(moduleNames, function(name, x) {
-    return(paste(x[names(x) == name], collapse = " "))
-  }, x$code)
-
   # add empty entry in tmp for module realization which do not contain any code but have a not_used.txt
-  notUsedNames <- unique(dimnames(x$not_used)[[1]])
-  missing <- notUsedNames[!(notUsedNames %in% moduleNames)]
+  modulesWithNotUsedFile <- unique(dimnames(x$not_used)[[1]])
+  missing <- modulesWithNotUsedFile[!(modulesWithNotUsedFile %in% moduleNames)]
   if (length(missing) > 0) {
-    mtmp <- rep("", length(missing))
-    names(mtmp) <- missing
-    tmp <- c(tmp, mtmp)
     moduleNames <- c(moduleNames, missing)
   }
 
   # Strip string literals so that variable names inside strings are not matched.
   # Both double-quoted and single-quoted GAMS strings are removed. The patterns use a
-  # negated character class (not a greedy ".*") so that each string literal is matched
-  # individually; a greedy match would span from the first to the last quote on a line and
-  # delete real tokens sitting between two separate strings (e.g. fm_croparea between two
-  # "y1995" literals).
+  # negated character class (not a greedy ".*").
   code <- x$code
   code <- gsub("\"[^\"]*\"", "", code)
   code <- gsub("'[^']*'", "", code)
@@ -76,7 +66,7 @@ checkAppearance <- function(x, capitalExclusionList = NULL) {
   lineLengths   <- lengths(allTokenLists)
   tokenVec      <- unlist(allTokenLists, use.names = FALSE)
   lowerTokenVec <- tolower(tokenVec)
-  moduleVec     <- rep(names(x$code), lineLengths)
+  moduleVec     <- rep(names(code), lineLengths)
 
   # keep only non-empty tokens that are declared symbols
   isSymbol      <- nzchar(tokenVec) & (tokenVec %in% objectNames)

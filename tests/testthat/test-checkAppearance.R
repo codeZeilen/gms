@@ -148,6 +148,58 @@ test_that("checkAppearance detects a symbol located between two string literals 
   expect_true(result$appearance["f59_topsoilc_density", "fancymodule"])
 })
 
+makeNotUsed <- function(varNames, realization) {
+  matrix(varNames, ncol = 1,
+         dimnames = list(rep(realization, length(varNames)), "name"))
+}
+
+test_that("checkAppearance marks not_used variable as 2 when realization has no code", {
+  # "emptymod.default" has a not_used.txt listing vm_interface but zero code lines.
+  code <- c("vm_interface = 1;", "vm_interface = vm_interface + 1;")
+  names(code) <- c("core", "fancymod.default")
+
+  declarations <- matrix(
+    c("vm_interface", "", "", "variable"),
+    nrow = 1, ncol = 4, byrow = TRUE,
+    dimnames = list("core", c("names", "sets", "description", "type"))
+  )
+
+  x <- list(code = code, declarations = declarations,
+            not_used = makeNotUsed("vm_interface", "emptymod.default"))
+
+  result <- suppressMessages(checkAppearance(x))
+
+  expect_true("emptymod.default" %in% colnames(result$appearance),
+              label = "realization with no code but not_used.txt must appear as a column")
+  expect_equal(result$appearance["vm_interface", "emptymod.default"], 2,
+               label = "variable listed in not_used.txt must have appearance value 2")
+  expect_null(result$warnings,
+              label = "no warning expected when not_used variable does not appear in code")
+})
+
+test_that("checkAppearance warns when a not_used variable actually appears in that realization's code", {
+  # "mod.default" lists vm_interface in not_used.txt but also uses it in its code.
+  code <- c("vm_interface = 1;", "vm_interface = vm_interface + 1;")
+  names(code) <- c("core", "mod.default")
+
+  declarations <- matrix(
+    c("vm_interface", "", "", "variable"),
+    nrow = 1, ncol = 4, byrow = TRUE,
+    dimnames = list("core", c("names", "sets", "description", "type"))
+  )
+
+  x <- list(code = code, declarations = declarations,
+            not_used = makeNotUsed("vm_interface", "mod.default"))
+
+  result <- suppressWarnings(suppressMessages(checkAppearance(x)))
+
+  notUsedConflictWarning <- any(grepl("appears in not_used", names(result$warnings)))
+  expect_true(notUsedConflictWarning,
+              label = "warning expected when not_used variable actually appears in the realization's code")
+  expect_equal(result$appearance["vm_interface", "mod.default"], 2,
+               label = "appearance value is still 2 even when there is a conflict")
+})
+
 test_that("checkAppearance still detects actual variable usage outside strings", {
   code <- c(
     "pm_corevar = 1;",
