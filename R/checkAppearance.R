@@ -73,11 +73,11 @@ checkAppearance <- function(x, capitalExclusionList = NULL) {
   symbolTokens  <- tokenVec[isSymbol]
   symbolModules <- moduleVec[isSymbol]
 
-  a <- matrix(FALSE, nrow = length(objectNames), ncol = length(moduleNames),
-              dimnames = list(objectNames, moduleNames))
+  objectsToModules <- matrix(FALSE, nrow = length(objectNames), ncol = length(moduleNames),
+                             dimnames = list(objectNames, moduleNames))
   if (length(symbolTokens) > 0) {
-    a[cbind(match(symbolTokens, objectNames),
-            match(symbolModules, moduleNames))] <- TRUE
+    objectsToModules[cbind(match(symbolTokens, objectNames),
+                           match(symbolModules, moduleNames))] <- TRUE
   }
 
   message("  Finished variable matching...         (time elapsed: ",
@@ -125,19 +125,19 @@ checkAppearance <- function(x, capitalExclusionList = NULL) {
           format(proc.time()["elapsed"] - ptm, width = 6, nsmall = 2, digits = 2), ")")
 
   if (!is.null(x$not_used)) {
-    for (i in 1:dim(x$not_used)[1]) {
-      if (a[x$not_used[i, "name"], dimnames(x$not_used)[[1]][i]]) {
+    for (i in seq_len(dim(x$not_used)[1])) {
+      if (objectsToModules[x$not_used[i, "name"], dimnames(x$not_used)[[1]][i]]) {
         w <- .warning(x$not_used[i, "name"], " appears in not_used.txt of module ", dimnames(x$not_used)[[1]][i],
                       " but is used in the GAMS code of it!", w = w)
       }
-      a[x$not_used[i, "name"], dimnames(x$not_used)[[1]][i]] <- 2
+      objectsToModules[x$not_used[i, "name"], dimnames(x$not_used)[[1]][i]] <- 2
     }
   }
 
   sets <- x$declarations[x$declarations[, "type"] == "set", "names"]
-  aSets <- a[sets, , drop = FALSE]
-  a <- a[!(rownames(a) %in% sets), , drop = FALSE]
-  type <- sub("^(o|)[^_]*?(m|[0-9]{2}|)_.*$", "\\1\\2", dimnames(a)[[1]])
-  names(type) <- dimnames(a)[[1]]
-  return(list(appearance = a, setappearance = aSets, type = type, warnings = w))
+  aSets <- objectsToModules[sets, , drop = FALSE]
+  objectsToModules <- objectsToModules[!(rownames(objectsToModules) %in% sets), , drop = FALSE]
+  type <- sub("^(o|)[^_]*?(m|[0-9]{2}|)_.*$", "\\1\\2", dimnames(objectsToModules)[[1]])
+  names(type) <- dimnames(objectsToModules)[[1]]
+  return(list(appearance = objectsToModules, setappearance = aSets, type = type, warnings = w))
 }
