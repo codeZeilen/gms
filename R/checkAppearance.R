@@ -26,7 +26,6 @@ checkAppearance <- function(x, capitalExclusionList = NULL) {
   message("  Running checkAppearance...")
   moduleNames <- unique(names(x$code))
   objectNames <- unique(x$declarations[, "names"])
-
   if (!is.null(x$not_used)) objectNames <- unique(c(objectNames, x$not_used[, "name"]))
 
   # check for variables with different capitalization in declarations
@@ -57,43 +56,54 @@ checkAppearance <- function(x, capitalExclusionList = NULL) {
     moduleNames <- c(moduleNames, missing)
   }
 
-  declarationsRegex <- paste("(^|[^[:alnum:]_])", escapeRegex(objectNames), "($|[^[:alnum:]_])", sep = "")
+  # Strip string literals so that variable names inside strings are not matched.
+  # Both double-quoted and single-quoted GAMS strings are removed. The patterns use a
+  # negated character class (not a greedy ".*") so that each string literal is matched
+  # individually; a greedy match would span from the first to the last quote on a line and
+  # delete real tokens sitting between two separate strings (e.g. fm_croparea between two
+  # "y1995" literals).
+  code <- x$code
+  code <- gsub("\"[^\"]*\"", "", code)
+  code <- gsub("'[^']*'", "", code)
+  code <- gsub("display.*", "", code)
 
   message("  Start variable matching...            (time elapsed: ",
           format(proc.time()["elapsed"] - ptm, width = 6, nsmall = 2, digits = 2), ")")
 
-  # This part is the most time consuming (90% of the time in codeCheck). Here, the variable names are searched for in
-  # all module realizations. This process primarily seems to scale with the number of variables and not with the number
-  # of module realizations. It is hard to optimize since the number of variables that the code has to look for can
-  # hardly be reduced
-  a <- t(sapply(declarationsRegex, grepl, tmp, perl = TRUE))
+  # Tokenize all code lines at once and build an inverted (token -> module) index.
+  # This is O(code size) rather than O(symbols x code size), replacing the grepl sweep.
+  allTokenLists <- strsplit(code, "[^[:alnum:]_]+", perl = TRUE)
+  lineLengths   <- lengths(allTokenLists)
+  tokenVec      <- unlist(allTokenLists, use.names = FALSE)
+  lowerTokenVec <- tolower(tokenVec)
+  moduleVec     <- rep(names(x$code), lineLengths)
+
+  # keep only non-empty tokens that are declared symbols
+  isSymbol      <- nzchar(tokenVec) & (tokenVec %in% objectNames)
+  symbolTokens  <- tokenVec[isSymbol]
+  symbolModules <- moduleVec[isSymbol]
+
+  a <- matrix(FALSE, nrow = length(objectNames), ncol = length(moduleNames),
+              dimnames = list(objectNames, moduleNames))
+  if (length(symbolTokens) > 0) {
+    a[cbind(match(symbolTokens, objectNames),
+            match(symbolModules, moduleNames))] <- TRUE
+  }
 
   message("  Finished variable matching...         (time elapsed: ",
           format(proc.time()["elapsed"] - ptm, width = 6, nsmall = 2, digits = 2), ")")
 
-  dimnames(a)[[1]] <- objectNames
-  dimnames(a)[[2]] <- moduleNames
-
-  # Find variables with different capitalization
-
-  code <- x$code
-  # exclude \" comments \"
-  code <- gsub("\\\".*\\\"", "", code)
-  # exclude any text surrounded by with single quotes
-  code <- gsub("'.*'", "", code)
-  # exclude display statements
-  code <- gsub("display.*", "", code)
-
   message("  Start var capitalization check...     (time elapsed: ",
           format(proc.time()["elapsed"] - ptm, width = 6, nsmall = 2, digits = 2), ")")
 
-  # check for each variable if it appears with different capitalization in the code
-  duplicates <- sapply(declarationsRegex, function(x) {
-    # get all lines of code that match the variable (case insensitive)
-    chunks <- code[grepl(x, code, ignore.case = TRUE)]
-    # if case sensitive search yields less results, there must be occurrences different capitalization
-    return(length(chunks) != length(chunks[grepl(x, chunks, ignore.case = FALSE)]))
-  })
+  # Find symbols that appear with more than one capitalisation variant in the code.
+  # Uses the prebuilt token vector (O(tokens) build + O(1) per symbol lookup).
+  # tapply groups tokenVec by lowerTokenVec (its grouping key, same length) and counts the
+  # distinct casings within each group; any group with more than one casing is a duplicate.
+  casingCounts <- tapply(tokenVec, lowerTokenVec, function(v) length(unique(v)))
+  multiCaseSet <- names(casingCounts)[casingCounts > 1L]
+  duplicates   <- tolower(objectNames) %in% multiCaseSet
+  names(duplicates) <- objectNames
 
   if (length(objectNames[setdiff(objectNames[duplicates], capitalExclusionList)] > 0)) {
 
@@ -105,13 +115,18 @@ checkAppearance <- function(x, capitalExclusionList = NULL) {
     )
 
     for (dup in duplicateNames) {
-      msg <- paste0(msg, "- Lines found for item '", dup, "':\n")
-      dup <- paste("(^|[^[:alnum:]_])", escapeRegex(dup), "($|[^[:alnum:]_])", sep = "")
-      chunks <- code[grepl(dup, code, ignore.case = TRUE)]
-      msg <- paste0(msg, paste0(setdiff(chunks, chunks[grepl(dup, chunks, ignore.case = FALSE)]), collapse = "\n"))
+      msg <- paste0(msg, "- Suspicious lines found for item '", dup, "':\n")
+      dupRegex <- paste("(^|[^[:alnum:]_])", escapeRegex(dup), "($|[^[:alnum:]_])", sep = "")
+      chunks <- code[grepl(dupRegex, code, ignore.case = TRUE, perl = TRUE)]
+
+      tokens <- strsplit(chunks, "[^[:alnum:]_]+", perl = TRUE)
+      correctTokenCounts <- vapply(tokens, function(line) sum(dup == line), integer(1))
+      allTokenCounts <- vapply(tokens, function(line) sum(dup == tolower(line)), integer(1))
+      suspectLines <- chunks[correctTokenCounts != allTokenCounts]
+
+      msg <- paste0(msg, paste0(paste(" - ", suspectLines), collapse = "\n"))
       msg <- paste0(msg, "\n")
     }
-
     w <- .warning(msg, w = w)
 
   }

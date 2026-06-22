@@ -29,10 +29,10 @@ test_that(".checkAppearanceUsage produces warnings", {
                                                "mod.two")))
 
   ap <- list(type = apType,
-            appearance = apAppearance)
+             appearance = apAppearance)
 
   modulesInfo <- structure(c("mod", "10",
-                            "10_mod", "one,two"),
+                             "10_mod", "one,two"),
                           .Dim = c(1L, 4L),
                           .Dimnames = list(c("mod"),
                                            c("name", "number", "folder", "realizations")))
