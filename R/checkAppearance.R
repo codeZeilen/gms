@@ -55,7 +55,6 @@ checkAppearance <- function(x, capitalExclusionList = NULL) {
   code <- x$code
   code <- gsub("\"[^\"]*\"", "", code)
   code <- gsub("'[^']*'", "", code)
-  code <- gsub("display.*", "", code)
 
   message("  Start variable matching...            (time elapsed: ",
           format(proc.time()["elapsed"] - ptm, width = 6, nsmall = 2, digits = 2), ")")
@@ -86,17 +85,18 @@ checkAppearance <- function(x, capitalExclusionList = NULL) {
   message("  Start var capitalization check...     (time elapsed: ",
           format(proc.time()["elapsed"] - ptm, width = 6, nsmall = 2, digits = 2), ")")
 
+  tokenVecForCap        <- unlist(strsplit(code, "[^[:alnum:]_]+", perl = TRUE),
+                                  use.names = FALSE)
+  lowerTokenVecForCap   <- tolower(tokenVecForCap)
+
   # Find symbols that appear with more than one capitalisation variant in the code.
-  # Uses the prebuilt token vector (O(tokens) build + O(1) per symbol lookup).
-  # tapply groups tokenVec by lowerTokenVec (its grouping key, same length) and counts the
-  # distinct casings within each group; any group with more than one casing is a duplicate.
-  casingCounts <- tapply(tokenVec, lowerTokenVec, function(v) length(unique(v)))
+  # tapply groups actual tokens by their lowercase form; count > 1 means mixed casing.
+  casingCounts <- tapply(tokenVecForCap, lowerTokenVecForCap, function(v) length(unique(v)))
   multiCaseSet <- names(casingCounts)[casingCounts > 1L]
   duplicates   <- tolower(objectNames) %in% multiCaseSet
   names(duplicates) <- objectNames
 
   if (length(objectNames[setdiff(objectNames[duplicates], capitalExclusionList)] > 0)) {
-
     duplicateNames <- unname(setdiff(objectNames[duplicates], capitalExclusionList))
 
     msg <- paste0(
@@ -111,7 +111,7 @@ checkAppearance <- function(x, capitalExclusionList = NULL) {
 
       tokens <- strsplit(chunks, "[^[:alnum:]_]+", perl = TRUE)
       correctTokenCounts <- vapply(tokens, function(line) sum(dup == line), integer(1))
-      allTokenCounts <- vapply(tokens, function(line) sum(dup == tolower(line)), integer(1))
+      allTokenCounts <- vapply(tokens, function(line) sum(tolower(dup) == tolower(line)), integer(1))
       suspectLines <- chunks[correctTokenCounts != allTokenCounts]
 
       msg <- paste0(msg, paste0(paste(" - ", suspectLines), collapse = "\n"))

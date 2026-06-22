@@ -111,21 +111,22 @@ test_that("checkAppearance does not warn when mixed casing is only inside string
                label = "casing difference inside a string literal must not trigger a warning")
 })
 
-test_that("checkAppearance ignores casing differences inside display statements", {
-  # display statements are stripped before tokenization, so a casing difference that
-  # only occurs inside a display statement must not be flagged.
+test_that("checkAppearance detects a variable that appears only in a display statement", {
+  # Regression for REMIND: variables like `display vm_emiFgas.L;` or `display p50_test;`
+  # can be the sole reference to an interface variable in a module. The display strip must
+  # not affect appearance detection — only the capitalisation check.
   code <- c(
-    "vm_Example = 1;",
-    "display vm_example;"
+    "vm_interface = 1;",
+    "display vm_interface;"
   )
-  names(code) <- c("core", "core")
+  names(code) <- c("core", "fancymodule")
 
-  x <- makeMinimalX(code, "vm_Example", "variable")
+  x <- makeMinimalX(code, "vm_interface", "variable")
 
   result <- suppressMessages(checkAppearance(x))
 
-  expect_false(hasCapWarning(result, "vm_Example"),
-               label = "casing difference inside a display statement must not trigger a warning")
+  expect_true(result$appearance["vm_interface", "fancymodule"],
+              label = "variable referenced only via display must still appear in that module")
 })
 
 test_that("checkAppearance detects a symbol located between two string literals on one line", {
