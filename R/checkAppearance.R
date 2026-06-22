@@ -24,16 +24,16 @@ checkAppearance <- function(x, capitalExclusionList = NULL) {
   w <- NULL
   ptm <- proc.time()["elapsed"]
   message("  Running checkAppearance...")
-  colnames <- unique(names(x$code))
-  rownames <- unique(x$declarations[, "names"])
+  moduleNames <- unique(names(x$code))
+  objectNames <- unique(x$declarations[, "names"])
 
-  if (!is.null(x$not_used)) rownames <- unique(c(rownames, x$not_used[, "name"]))
+  if (!is.null(x$not_used)) objectNames <- unique(c(objectNames, x$not_used[, "name"]))
 
   # check for variables with different capitalization in declarations
-  if (length(rownames[duplicated(tolower(rownames))]) > 0) {
+  if (length(objectNames[duplicated(tolower(objectNames))]) > 0) {
     w <- .warning(paste0(
       "Found variables with more than one capitalization in declarations and not_used.txt files: ",
-      paste0(rownames[duplicated(tolower(rownames))], collapse = ", ")
+      paste0(objectNames[duplicated(tolower(objectNames))], collapse = ", ")
     ), w = w)
   }
 
@@ -43,21 +43,21 @@ checkAppearance <- function(x, capitalExclusionList = NULL) {
   tmp <- grep("execute_load", x$code, ignore.case = TRUE)
   x$code[tmp] <- gsub("=[^,]*", "", x$code[tmp])
 
-  tmp <- sapply(colnames, function(name, x) {
+  tmp <- sapply(moduleNames, function(name, x) {
     return(paste(x[names(x) == name], collapse = " "))
   }, x$code)
 
   # add empty entry in tmp for module realization which do not contain any code but have a not_used.txt
   notUsedNames <- unique(dimnames(x$not_used)[[1]])
-  missing <- notUsedNames[!(notUsedNames %in% colnames)]
+  missing <- notUsedNames[!(notUsedNames %in% moduleNames)]
   if (length(missing) > 0) {
     mtmp <- rep("", length(missing))
     names(mtmp) <- missing
     tmp <- c(tmp, mtmp)
-    colnames <- c(colnames, missing)
+    moduleNames <- c(moduleNames, missing)
   }
 
-  declarationsRegex <- paste("(^|[^[:alnum:]_])", escapeRegex(rownames), "($|[^[:alnum:]_])", sep = "")
+  declarationsRegex <- paste("(^|[^[:alnum:]_])", escapeRegex(objectNames), "($|[^[:alnum:]_])", sep = "")
 
   message("  Start variable matching...            (time elapsed: ",
           format(proc.time()["elapsed"] - ptm, width = 6, nsmall = 2, digits = 2), ")")
@@ -71,8 +71,8 @@ checkAppearance <- function(x, capitalExclusionList = NULL) {
   message("  Finished variable matching...         (time elapsed: ",
           format(proc.time()["elapsed"] - ptm, width = 6, nsmall = 2, digits = 2), ")")
 
-  dimnames(a)[[1]] <- rownames
-  dimnames(a)[[2]] <- colnames
+  dimnames(a)[[1]] <- objectNames
+  dimnames(a)[[2]] <- moduleNames
 
   # Find variables with different capitalization
 
@@ -95,9 +95,9 @@ checkAppearance <- function(x, capitalExclusionList = NULL) {
     return(length(chunks) != length(chunks[grepl(x, chunks, ignore.case = FALSE)]))
   })
 
-  if (length(rownames[setdiff(rownames[duplicates], capitalExclusionList)] > 0)) {
+  if (length(objectNames[setdiff(objectNames[duplicates], capitalExclusionList)] > 0)) {
 
-    duplicateNames <- unname(setdiff(rownames[duplicates], capitalExclusionList))
+    duplicateNames <- unname(setdiff(objectNames[duplicates], capitalExclusionList))
 
     msg <- paste0(
       "Found variables with more than one capitalization in the codebase: ",
