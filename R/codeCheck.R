@@ -331,7 +331,7 @@ codeCheck <- function(path = ".",
 
   # do interfaces appear only in not_used.txt files of a module?
   for (m in names(interfaceInfo)) {
-    r <- grep(paste("^", m, "(\\.|$)", sep = ""), dimnames(ap$appearance)[[2]])
+    r <- grep(paste0("^", m, "(\\.|$)"), dimnames(ap$appearance)[[2]])
     for (v in interfaceInfo[[m]]) {
       if (all(ap$appearance[v, r] != 1)) {
         interfacesOnlyNotused <- append(interfacesOnlyNotused, setNames(v, m))
@@ -342,7 +342,8 @@ codeCheck <- function(path = ".",
   if (length(interfacesOnlyNotused) > 0) {
     if (! isTRUE(interactive)) {
       w <- .warning(paste(unique(interfacesOnlyNotused), collapse = ", "),
-                    " was never declared, but exists only in not_used.txt of ",
+                    " is not used at all within each of the ",
+                    "following modules but listed in not_used.txt files these modules: ",
                     paste(unique(names(interfacesOnlyNotused)), collapse = ", "),
                     w = w)
     } else {
