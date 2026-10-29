@@ -62,10 +62,9 @@ checkAppearance <- function(x, capitalExclusionList = NULL) {
   # Tokenize all code lines at once and build an inverted (token -> module) index.
   # This is O(code size) rather than O(symbols x code size), replacing the grepl sweep.
   labels        <- grep("[+-]", unique(unlist(x$sets, use.names = FALSE)), value = TRUE)
-  allTokenLists <- .tokenizeGams(code, labels)
+  allTokenLists <- .tokenizeGams(code, objectNames, labels)
   lineLengths   <- lengths(allTokenLists)
   tokenVec      <- unlist(allTokenLists, use.names = FALSE)
-  lowerTokenVec <- tolower(tokenVec)
   moduleVec     <- rep(names(code), lineLengths)
 
   # keep only non-empty tokens that are declared symbols
@@ -86,10 +85,11 @@ checkAppearance <- function(x, capitalExclusionList = NULL) {
   message("  Start var capitalization check...     (time elapsed: ",
           format(proc.time()["elapsed"] - ptm, width = 6, nsmall = 2, digits = 2), ")")
 
-  # Find symbols that appear with more than one capitalisation variant in the code.
-  # tapply groups actual tokens by their lowercase form; count > 1 means mixed casing.
-  casingCounts <- tapply(tokenVec, lowerTokenVec, function(v) length(unique(v)))
-  multiCaseSet <- names(casingCounts)[casingCounts > 1L]
+  # Find symbols that appear with more than one capitalisation variant in the code. A lowercase
+  # form has mixed casing exactly when more than one distinct token shares it.
+  uniqueTokens <- tokenVec[!duplicated(tokenVec)]
+  lowerUnique  <- tolower(uniqueTokens)
+  multiCaseSet <- lowerUnique[duplicated(lowerUnique)]
   duplicates   <- tolower(objectNames) %in% multiCaseSet
   names(duplicates) <- objectNames
 
@@ -101,16 +101,13 @@ checkAppearance <- function(x, capitalExclusionList = NULL) {
       paste0(duplicateNames, collapse = ", "), "\n"
     )
 
+    lineOfToken <- rep(seq_along(code), lineLengths)
     for (dup in duplicateNames) {
       msg <- paste0(msg, "- Suspicious lines found for item '", dup, "':\n")
-      dupRegex <- paste("(^|[^[:alnum:]_])", escapeRegex(dup), "($|[^[:alnum:]_])", sep = "")
-      hit    <- grepl(dupRegex, code, ignore.case = TRUE, perl = TRUE)
-      chunks <- code[hit]
 
-      tokens <- allTokenLists[hit]
-      correctTokenCounts <- vapply(tokens, function(line) sum(dup == line), integer(1))
-      allTokenCounts <- vapply(tokens, function(line) sum(tolower(dup) == tolower(line)), integer(1))
-      suspectLines <- chunks[correctTokenCounts != allTokenCounts]
+      # lines holding the item in a casing other than the declared one
+      miscased     <- tokenVec %in% setdiff(uniqueTokens[lowerUnique == tolower(dup)], dup)
+      suspectLines <- code[unique(lineOfToken[miscased])]
 
       msg <- paste0(msg, paste0(paste(" - ", suspectLines), collapse = "\n"))
       msg <- paste0(msg, "\n")
@@ -140,18 +137,38 @@ checkAppearance <- function(x, capitalExclusionList = NULL) {
   return(list(appearance = objectsToModules, setappearance = aSets, type = type, warnings = w))
 }
 
-# Tokenizes each line like strsplit(lines, "[^[:alnum:]_]+"), but drops set labels with
-# "+" or "-" (e.g. "SMIP7-H-SSP2-sens") as a whole (case-insensitive). Otherwise their
-# pieces (here "H") would count as symbols. Expressions like "1-vm_x" are only kept together
-# if they literally equal a label. Only labels parsed by readSetItems are known.
-.tokenizeGams <- function(lines, labels) {
+# Tokenizes each line like strsplit(lines, "[^[:alnum:]_]+"), but keeps runs like "SMIP7-H-SSP2-sens"
+# together and drops them as one GAMS label, as otherwise their pieces (here "H") would count as
+# symbols. A run of identifiers joined by "+"/"-" (no spaces) is a label if it equals one of the set
+# items in labels, or, for labels readSetItems could not parse, if its first piece does not start
+# with a digit and is no symbol (case-insensitive) and no piece is exactly a symbol. So "1-vm_x",
+# "vm_a-vm_b" and "vm_x(t-1)" are still split. Two gaps remain for a label missing from labels: one
+# starting with a number or a symbol is still split, and a mis-cased symbol inside it stays hidden
+# from the capitalization check (indistinguishable from the label piece "H" above). Unlike plain
+# strsplit the signs around a run leave no empty tokens behind.
+.tokenizeGams <- function(lines, symbols, labels = NULL) {
   tokens <- strsplit(lines, "[^[:alnum:]_]+", perl = TRUE)
-  if (length(labels) == 0) return(tokens)
-  labels <- tolower(labels)
-  candidates <- grep("[+-]", lines)
-  tokens[candidates] <- lapply(strsplit(lines[candidates], "[^[:alnum:]_+-]+", perl = TRUE), function(coarse) {
-    coarse <- coarse[!(tolower(coarse) %in% labels)]
-    as.character(unlist(strsplit(coarse, "[^[:alnum:]_]+", perl = TRUE)))
-  })
+  # the cheap grep first, the backtracking one only on the few lines that can match at all
+  maybe      <- grep("[+-]", lines, perl = TRUE)
+  candidates <- maybe[grepl("[[:alnum:]_][+-]+[[:alnum:]_]", lines[maybe], perl = TRUE)]
+  if (length(candidates) == 0) return(tokens)
+
+  coarse     <- strsplit(lines[candidates], "[^[:alnum:]_+-]+", perl = TRUE)
+  runs       <- gsub("^[+-]+|[+-]+$", "", unlist(coarse, use.names = FALSE), perl = TRUE)
+  runLine    <- rep(seq_along(candidates), lengths(coarse))
+  pieces     <- strsplit(runs, "[+-]+", perl = TRUE)
+  pieceVec   <- unlist(pieces, use.names = FALSE)
+  pieceRun   <- rep(seq_along(runs), lengths(pieces))
+  # match(), as a run stripped to "" contributes no piece at all
+  firstPiece <- pieceVec[match(seq_along(runs), pieceRun)]
+
+  hasSymbol <- tabulate(pieceRun[pieceVec %in% symbols], nbins = length(runs)) > 0
+  isKnown   <- tolower(runs) %in% tolower(labels)
+  isGuessed <- !grepl("^[0-9]", firstPiece) & !(tolower(firstPiece) %in% tolower(symbols)) & !hasSymbol
+  isLabel   <- lengths(pieces) > 1 & (isKnown | isGuessed)
+
+  keep <- !isLabel[pieceRun]
+  tokens[candidates] <- unname(split(pieceVec[keep], factor(runLine[pieceRun[keep]],
+                                                            levels = seq_along(candidates))))
   tokens
 }
