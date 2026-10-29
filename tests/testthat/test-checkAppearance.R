@@ -1,11 +1,11 @@
-makeMinimalX <- function(code, varNames, varTypes = NULL) {
+makeMinimalX <- function(code, varNames, varTypes = NULL, sets = NULL) {
   if (is.null(varTypes)) varTypes <- rep("variable", length(varNames))
   declarations <- matrix(
     c(varNames, rep("", length(varNames)), rep("", length(varNames)), varTypes),
     nrow = length(varNames), ncol = 4,
     dimnames = list(rep("core", length(varNames)), c("names", "sets", "description", "type"))
   )
-  list(code = code, declarations = declarations, not_used = NULL)
+  list(code = code, declarations = declarations, not_used = NULL, sets = sets)
 }
 
 test_that("checkAppearance does not match variable names inside double-quoted strings", {
@@ -93,6 +93,42 @@ test_that("checkAppearance does not warn for symbols in capitalExclusionList", {
 
   expect_false(hasCapWarning(result, "vm_Example"),
                label = "excluded symbol must not produce a capitalization warning")
+})
+
+test_that("checkAppearance does not split hyphenated set labels in the capitalization check", {
+  # Regression for pik-piam/gms#117: "SMIP7-H-SSP2-sens" is a single GAMS label, its piece
+  # "H" must not collide with the declared set "h".
+  code <- c(
+    "sets h regions / EUR, LAM /;",
+    "sets scen56 / SMIP7-H-SSP2-sens, R21M42-SSP2-NDC /;",
+    "$setglobal c56_pollutant_prices  SMIP7-H-SSP2-sens",
+    "vm_cost(h) = 1;"
+  )
+  names(code) <- c("core", "ghg.price", "core", "core")
+  sets <- list(h = c("EUR", "LAM"), scen56 = c("SMIP7-H-SSP2-sens", "R21M42-SSP2-NDC"))
+
+  x <- makeMinimalX(code, c("h", "scen56", "vm_cost"), c("set", "set", "variable"), sets = sets)
+  result <- suppressMessages(checkAppearance(x))
+  expect_false(hasCapWarning(result, "h"))
+
+  # without the label being known as set item the piece "H" is still reported
+  x$sets <- NULL
+  result <- suppressWarnings(suppressMessages(checkAppearance(x)))
+  expect_true(any(grepl("codebase: h\\n", names(result$warnings))))
+})
+
+test_that("checkAppearance still warns for inconsistent capitalization in a subtraction", {
+  code <- c(
+    "vm_Example = 1;",
+    "pm_x = 1-vm_example;"
+  )
+  names(code) <- c("core", "fancymodule")
+
+  x <- makeMinimalX(code, c("vm_Example", "pm_x"), c("variable", "parameter"),
+                    sets = list(scen = c("SMIP7-H-SSP2-sens")))
+  result <- suppressWarnings(suppressMessages(checkAppearance(x)))
+
+  expect_true(hasCapWarning(result, "vm_Example"))
 })
 
 test_that("checkAppearance does not warn when mixed casing is only inside string literals", {

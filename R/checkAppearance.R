@@ -61,7 +61,8 @@ checkAppearance <- function(x, capitalExclusionList = NULL) {
 
   # Tokenize all code lines at once and build an inverted (token -> module) index.
   # This is O(code size) rather than O(symbols x code size), replacing the grepl sweep.
-  allTokenLists <- strsplit(code, "[^[:alnum:]_]+", perl = TRUE)
+  labels        <- grep("[+-]", unique(unlist(x$sets, use.names = FALSE)), value = TRUE)
+  allTokenLists <- .tokenizeGams(code, labels)
   lineLengths   <- lengths(allTokenLists)
   tokenVec      <- unlist(allTokenLists, use.names = FALSE)
   lowerTokenVec <- tolower(tokenVec)
@@ -85,13 +86,9 @@ checkAppearance <- function(x, capitalExclusionList = NULL) {
   message("  Start var capitalization check...     (time elapsed: ",
           format(proc.time()["elapsed"] - ptm, width = 6, nsmall = 2, digits = 2), ")")
 
-  tokenVecForCap        <- unlist(strsplit(code, "[^[:alnum:]_]+", perl = TRUE),
-                                  use.names = FALSE)
-  lowerTokenVecForCap   <- tolower(tokenVecForCap)
-
   # Find symbols that appear with more than one capitalisation variant in the code.
   # tapply groups actual tokens by their lowercase form; count > 1 means mixed casing.
-  casingCounts <- tapply(tokenVecForCap, lowerTokenVecForCap, function(v) length(unique(v)))
+  casingCounts <- tapply(tokenVec, lowerTokenVec, function(v) length(unique(v)))
   multiCaseSet <- names(casingCounts)[casingCounts > 1L]
   duplicates   <- tolower(objectNames) %in% multiCaseSet
   names(duplicates) <- objectNames
@@ -107,9 +104,10 @@ checkAppearance <- function(x, capitalExclusionList = NULL) {
     for (dup in duplicateNames) {
       msg <- paste0(msg, "- Suspicious lines found for item '", dup, "':\n")
       dupRegex <- paste("(^|[^[:alnum:]_])", escapeRegex(dup), "($|[^[:alnum:]_])", sep = "")
-      chunks <- code[grepl(dupRegex, code, ignore.case = TRUE, perl = TRUE)]
+      hit    <- grepl(dupRegex, code, ignore.case = TRUE, perl = TRUE)
+      chunks <- code[hit]
 
-      tokens <- strsplit(chunks, "[^[:alnum:]_]+", perl = TRUE)
+      tokens <- allTokenLists[hit]
       correctTokenCounts <- vapply(tokens, function(line) sum(dup == line), integer(1))
       allTokenCounts <- vapply(tokens, function(line) sum(tolower(dup) == tolower(line)), integer(1))
       suspectLines <- chunks[correctTokenCounts != allTokenCounts]
@@ -140,4 +138,20 @@ checkAppearance <- function(x, capitalExclusionList = NULL) {
   type <- sub("^(o|)[^_]*?(m|[0-9]{2}|)_.*$", "\\1\\2", dimnames(objectsToModules)[[1]])
   names(type) <- dimnames(objectsToModules)[[1]]
   return(list(appearance = objectsToModules, setappearance = aSets, type = type, warnings = w))
+}
+
+# Tokenizes each line like strsplit(lines, "[^[:alnum:]_]+"), but drops set labels with
+# "+" or "-" (e.g. "SMIP7-H-SSP2-sens") as a whole (case-insensitive). Otherwise their
+# pieces (here "H") would count as symbols. Expressions like "1-vm_x" are only kept together
+# if they literally equal a label. Only labels parsed by readSetItems are known.
+.tokenizeGams <- function(lines, labels) {
+  tokens <- strsplit(lines, "[^[:alnum:]_]+", perl = TRUE)
+  if (length(labels) == 0) return(tokens)
+  labels <- tolower(labels)
+  candidates <- grep("[+-]", lines)
+  tokens[candidates] <- lapply(strsplit(lines[candidates], "[^[:alnum:]_+-]+", perl = TRUE), function(coarse) {
+    coarse <- coarse[!(tolower(coarse) %in% labels)]
+    as.character(unlist(strsplit(coarse, "[^[:alnum:]_]+", perl = TRUE)))
+  })
+  tokens
 }
