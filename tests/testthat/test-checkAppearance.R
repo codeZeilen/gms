@@ -98,8 +98,8 @@ test_that("checkAppearance does not warn for symbols in capitalExclusionList", {
                label = "excluded symbol must not produce a capitalization warning")
 })
 
-test_that("checkAppearance does not split hyphenated set labels in the capitalization check", {
-  # Regression for pik-piam/gms#117: "SMIP7-H-SSP2-sens" is a single GAMS label, its piece
+test_that("checkAppearance does not split hyphenated set items in the capitalization check", {
+  # Regression for pik-piam/gms#117: "SMIP7-H-SSP2-sens" is a single set item, its piece
   # "H" must not collide with the declared set "h".
   code <- c(
     "sets h regions / EUR, LAM /;",
@@ -122,13 +122,13 @@ test_that("checkAppearance does not split hyphenated set labels in the capitaliz
                     sets = sets)
   result <- suppressMessages(checkAppearance(x))
   expect_false(hasCapWarning(result, "h"))
-  # "SSP2-h-custom" contains "h" in the declared casing, so without the label being known as a set
-  # item the set would be counted as used in ghg.price
+  # "SSP2-h-custom" contains "h" in the declared casing, so without the item being known the set
+  # would be counted as used in ghg.price
   expect_false(result$setappearance["h", "ghg.price"])
 })
 
-test_that("checkAppearance reports a set piece of a label that is no known set item", {
-  # The heuristic cannot tell a label starting with a number from arithmetic, so a label missing
+test_that("checkAppearance reports a set piece of an unparsed set item", {
+  # The heuristic cannot tell a set item starting with a number from arithmetic, so an item missing
   # from x$sets is still split and its piece "H" collides with the set "h".
   code <- c(
     "sets h regions / EUR, LAM /;",
@@ -153,14 +153,14 @@ test_that(".tokenizeGams keeps symbols in arithmetic without spaces", {
 
 test_that(".tokenizeGams drops a known set item the heuristic would split", {
   symbols <- c("vm_a", "vm_b", "t", "h")
-  labels <- c("1p5C-H-SSP2-sens", "H-SSP2-sens", "SSP2-h-custom")
-  for (lab in c(labels, "SSP2-H-custom")) {
-    expect_equal(.tokenizeGams(paste("$setglobal cm_x", lab), symbols, labels)[[1]],
-                 c("setglobal", "cm_x"), label = lab)
+  items <- c("1p5C-H-SSP2-sens", "H-SSP2-sens", "SSP2-h-custom")
+  for (item in c(items, "SSP2-H-custom")) {
+    expect_equal(.tokenizeGams(paste("$setglobal cm_x", item), symbols, items)[[1]],
+                 c("setglobal", "cm_x"), label = item)
   }
-  expect_equal(.tokenizeGams("p_x = 2030-h;", symbols, labels)[[1]], c("p_x", "2030", "h"))
-  expect_equal(.tokenizeGams("x = 1-vm_a;", symbols, labels)[[1]], c("x", "1", "vm_a"))
-  expect_equal(.tokenizeGams("vm_a(t-1)", symbols, labels)[[1]], c("vm_a", "t", "1"))
+  expect_equal(.tokenizeGams("p_x = 2030-h;", symbols, items)[[1]], c("p_x", "2030", "h"))
+  expect_equal(.tokenizeGams("x = 1-vm_a;", symbols, items)[[1]], c("x", "1", "vm_a"))
+  expect_equal(.tokenizeGams("vm_a(t-1)", symbols, items)[[1]], c("vm_a", "t", "1"))
 })
 
 test_that("checkAppearance still warns for inconsistent capitalization in a subtraction", {

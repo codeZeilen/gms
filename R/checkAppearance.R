@@ -61,8 +61,8 @@ checkAppearance <- function(x, capitalExclusionList = NULL) {
 
   # Tokenize all code lines at once and build an inverted (token -> module) index.
   # This is O(code size) rather than O(symbols x code size), replacing the grepl sweep.
-  labels        <- grep("[+-]", unique(unlist(x$sets, use.names = FALSE)), value = TRUE)
-  allTokenLists <- .tokenizeGams(code, objectNames, labels)
+  nonIdentifierSetItems <- grep("[+-]", unique(unlist(x$sets, use.names = FALSE)), value = TRUE)
+  allTokenLists <- .tokenizeGams(code, objectNames, nonIdentifierSetItems)
   lineLengths   <- lengths(allTokenLists)
   tokenVec      <- unlist(allTokenLists, use.names = FALSE)
   moduleVec     <- rep(names(code), lineLengths)
@@ -137,16 +137,19 @@ checkAppearance <- function(x, capitalExclusionList = NULL) {
   return(list(appearance = objectsToModules, setappearance = aSets, type = type, warnings = w))
 }
 
-# Tokenizes each line like strsplit(lines, "[^[:alnum:]_]+"), but keeps runs like "SMIP7-H-SSP2-sens"
-# together and drops them as one GAMS label, as otherwise their pieces (here "H") would count as
-# symbols. A run of identifiers joined by "+"/"-" (no spaces) is a label if it equals one of the set
-# items in labels, or, for labels readSetItems could not parse, if its first piece does not start
-# with a digit and is no symbol (case-insensitive) and no piece is exactly a symbol. So "1-vm_x",
-# "vm_a-vm_b" and "vm_x(t-1)" are still split. Two gaps remain for a label missing from labels: one
-# starting with a number or a symbol is still split, and a mis-cased symbol inside it stays hidden
-# from the capitalization check (indistinguishable from the label piece "H" above). Unlike plain
-# strsplit the signs around a run leave no empty tokens behind.
-.tokenizeGams <- function(lines, symbols, labels = NULL) {
+# Tokenizes each line like strsplit(lines, "[^[:alnum:]_]+"), but keeps a run like
+# "SMIP7-H-SSP2-sens" together and drops it, as it is one set item (a GAMS label) and not code,
+# whose pieces (here "H") would otherwise count as symbols. nonIdentifierSetItems are the parsed
+# set items that no identifier could be, i.e. the ones containing "+" or "-"; passing the remaining
+# items would be harmless but pointless, as a run of one piece is never dropped. A run of
+# identifiers joined by "+"/"-" (no spaces) is dropped if it equals one of those items, or, for set
+# items readSetItems could not parse, if its first piece does not start with a digit and is no
+# symbol (case-insensitive) and no piece is exactly a symbol. So "1-vm_x", "vm_a-vm_b" and
+# "vm_x(t-1)" are still split. Two gaps remain for a set item that is not among
+# nonIdentifierSetItems: one starting with a number or a symbol is still split, and a mis-cased
+# symbol inside it stays hidden from the capitalization check (indistinguishable from the piece "H"
+# above). Unlike plain strsplit the signs around a run leave no empty tokens behind.
+.tokenizeGams <- function(lines, symbols, nonIdentifierSetItems = NULL) {
   tokens <- strsplit(lines, "[^[:alnum:]_]+", perl = TRUE)
   # the cheap grep first, the backtracking one only on the few lines that can match at all
   maybe      <- grep("[+-]", lines, perl = TRUE)
@@ -163,11 +166,11 @@ checkAppearance <- function(x, capitalExclusionList = NULL) {
   firstPiece <- pieceVec[match(seq_along(runs), pieceRun)]
 
   hasSymbol <- tabulate(pieceRun[pieceVec %in% symbols], nbins = length(runs)) > 0
-  isKnown   <- tolower(runs) %in% tolower(labels)
+  isKnown   <- tolower(runs) %in% tolower(nonIdentifierSetItems)
   isGuessed <- !grepl("^[0-9]", firstPiece) & !(tolower(firstPiece) %in% tolower(symbols)) & !hasSymbol
-  isLabel   <- lengths(pieces) > 1 & (isKnown | isGuessed)
+  isSetItem <- lengths(pieces) > 1 & (isKnown | isGuessed)
 
-  keep <- !isLabel[pieceRun]
+  keep <- !isSetItem[pieceRun]
   tokens[candidates] <- unname(split(pieceVec[keep], factor(runLine[pieceRun[keep]],
                                                             levels = seq_along(candidates))))
   tokens
