@@ -62,7 +62,7 @@ checkAppearance <- function(x, capitalExclusionList = NULL) {
   # Tokenize all code lines at once and build an inverted (token -> module) index.
   # This is O(code size) rather than O(symbols x code size), replacing the grepl sweep.
   nonIdentifierSetItems <- grep("[+-]", unique(unlist(x$sets, use.names = FALSE)), value = TRUE)
-  allTokenLists <- .tokenizeGams(code, objectNames, nonIdentifierSetItems)
+  allTokenLists <- .tokenizeGams(code, nonIdentifierSetItems)
   lineLengths   <- lengths(allTokenLists)
   tokenVec      <- unlist(allTokenLists, use.names = FALSE)
   moduleVec     <- rep(names(code), lineLengths)
@@ -137,37 +137,18 @@ checkAppearance <- function(x, capitalExclusionList = NULL) {
   return(list(appearance = objectsToModules, setappearance = aSets, type = type, warnings = w))
 }
 
-# Like strsplit(lines, "[^[:alnum:]_]+"), but drops runs of identifiers joined by "+"/"-" (e.g. "SMIP7-H-SSP2-sens")
-# that are set items, so their pieces (here "H") do not count as symbols. A run is a set item if it is in
-# nonIdentifierSetItems, or if its first piece starts with no digit and is no symbol (case-insensitive) and no piece
-# is a symbol. So "1-vm_x", "vm_a-vm_b" and "vm_x(t-1)" are still split.
-# Gaps for set items missing from nonIdentifierSetItems: one starting with a number or symbol is still split, and a
-# mis-cased symbol inside one is hidden from the capitalization check.
-.tokenizeGams <- function(lines, symbols, nonIdentifierSetItems = NULL) {
-  identifierTokens <- strsplit(lines, "[^[:alnum:]_]+", perl = TRUE)
-  # the cheap grep first (`maybe`), the backtracking one only on the few lines that can match at all
-  maybe      <- grep("[+-]", lines, perl = TRUE)
-  potentialSetItems <- maybe[grepl("[[:alnum:]_][+-]+[[:alnum:]_]", lines[maybe], perl = TRUE)]
-  if (length(potentialSetItems) == 0) {
-    return(identifierTokens)
-  }
-
-  coarse     <- strsplit(lines[potentialSetItems], "[^[:alnum:]_+-]+", perl = TRUE)
-  runs       <- gsub("^[+-]+|[+-]+$", "", unlist(coarse, use.names = FALSE), perl = TRUE)
-  runLine    <- rep(seq_along(potentialSetItems), lengths(coarse))
-  pieces     <- strsplit(runs, "[+-]+", perl = TRUE)
-  pieceVec   <- unlist(pieces, use.names = FALSE)
-  pieceRun   <- rep(seq_along(runs), lengths(pieces))
-  # match(), as a run stripped to "" contributes no piece at all
-  firstPiece <- pieceVec[match(seq_along(runs), pieceRun)]
-
-  hasSymbol <- tabulate(pieceRun[pieceVec %in% symbols], nbins = length(runs)) > 0
-  isKnown   <- tolower(runs) %in% tolower(nonIdentifierSetItems)
-  isGuessed <- !grepl("^[0-9]", firstPiece) & !(tolower(firstPiece) %in% tolower(symbols)) & !hasSymbol
-  isSetItem <- lengths(pieces) > 1 & (isKnown | isGuessed)
-
-  keep <- !isSetItem[pieceRun]
-  identifierTokens[potentialSetItems] <- unname(split(pieceVec[keep], factor(runLine[pieceRun[keep]],
-                                                            levels = seq_along(potentialSetItems))))
-  return(identifierTokens)
+# Like strsplit(lines, "[^[:alnum:]_]+"), but keeps declared set items containing "+"/"-"
+# (e.g. "SMIP7-H-SSP2-sens") out of the token list, so their pieces (here "H") do not collide with
+# symbols like the set "h". A set item missing from nonIdentifierSetItems is split like arithmetic.
+.tokenizeGams <- function(lines, nonIdentifierSetItems = NULL) {
+  # split with "+"/"-" counting as identifier characters, so that a set item stays one run
+  coarse  <- strsplit(lines, "[^[:alnum:]_+-]+", perl = TRUE)
+  runs    <- gsub("^[+-]+|[+-]+$", "", unlist(coarse, use.names = FALSE), perl = TRUE)
+  runLine <- rep(seq_along(lines), lengths(coarse))
+  keep    <- !(tolower(runs) %in% tolower(nonIdentifierSetItems))
+  pieces  <- strsplit(runs[keep], "[+-]+", perl = TRUE)
+  # the levels keep lines without any token as an empty entry
+  tokens  <- split(unlist(pieces, use.names = FALSE),
+                   factor(rep(runLine[keep], lengths(pieces)), levels = seq_along(lines)))
+  return(unname(tokens))
 }

@@ -128,8 +128,7 @@ test_that("checkAppearance does not split hyphenated set items in the capitaliza
 })
 
 test_that("checkAppearance reports a set piece of an unparsed set item", {
-  # The heuristic cannot tell a set item starting with a number from arithmetic, so an item missing
-  # from x$sets is still split and its piece "H" collides with the set "h".
+  # An item missing from x$sets is split like arithmetic, so its piece "H" collides with the set "h".
   code <- c(
     "sets h regions / EUR, LAM /;",
     "$setglobal c56_pollutant_prices  1p5C-H-SSP2-sens"
@@ -143,24 +142,26 @@ test_that("checkAppearance reports a set piece of an unparsed set item", {
 })
 
 test_that(".tokenizeGams keeps symbols in arithmetic without spaces", {
-  symbols <- c("vm_a", "vm_b", "t", "h")
-  expect_equal(.tokenizeGams("x = 1-vm_a;", symbols)[[1]], c("x", "1", "vm_a"))
-  expect_equal(.tokenizeGams("vm_a-vm_b", symbols)[[1]], c("vm_a", "vm_b"))
-  expect_equal(.tokenizeGams("vm_a(t-1)", symbols)[[1]], c("vm_a", "t", "1"))
-  expect_equal(.tokenizeGams("x2-vm_b", symbols)[[1]], c("x2", "vm_b"))
-  expect_equal(.tokenizeGams("a = SMIP7-H-SSP2-sens;", symbols)[[1]], "a")
+  expect_equal(.tokenizeGams("x = 1-vm_a;")[[1]], c("x", "1", "vm_a"))
+  expect_equal(.tokenizeGams("vm_a-vm_b")[[1]], c("vm_a", "vm_b"))
+  expect_equal(.tokenizeGams("vm_a(t-1)")[[1]], c("vm_a", "t", "1"))
+  expect_equal(.tokenizeGams("x2-vm_b")[[1]], c("x2", "vm_b"))
 })
 
-test_that(".tokenizeGams drops a known set item the heuristic would split", {
-  symbols <- c("vm_a", "vm_b", "t", "h")
-  items <- c("1p5C-H-SSP2-sens", "H-SSP2-sens", "SSP2-h-custom")
+test_that(".tokenizeGams drops a declared set item", {
+  items <- c("SMIP7-H-SSP2-sens", "1p5C-H-SSP2-sens", "H-SSP2-sens", "SSP2-h-custom")
   for (item in c(items, "SSP2-H-custom")) {
-    expect_equal(.tokenizeGams(paste("$setglobal cm_x", item), symbols, items)[[1]],
+    expect_equal(.tokenizeGams(paste("$setglobal cm_x", item), items)[[1]],
                  c("setglobal", "cm_x"), label = item)
   }
-  expect_equal(.tokenizeGams("p_x = 2030-h;", symbols, items)[[1]], c("p_x", "2030", "h"))
-  expect_equal(.tokenizeGams("x = 1-vm_a;", symbols, items)[[1]], c("x", "1", "vm_a"))
-  expect_equal(.tokenizeGams("vm_a(t-1)", symbols, items)[[1]], c("vm_a", "t", "1"))
+  expect_equal(.tokenizeGams("a = SMIP7-H-SSP2-sens;", items)[[1]], "a")
+  expect_equal(.tokenizeGams("p_x = 2030-h;", items)[[1]], c("p_x", "2030", "h"))
+  expect_equal(.tokenizeGams("x = 1-vm_a;", items)[[1]], c("x", "1", "vm_a"))
+  expect_equal(.tokenizeGams("vm_a(t-1)", items)[[1]], c("vm_a", "t", "1"))
+})
+
+test_that(".tokenizeGams splits an undeclared set item", {
+  expect_equal(.tokenizeGams("a = SMIP7-H-SSP2-sens;")[[1]], c("a", "SMIP7", "H", "SSP2", "sens"))
 })
 
 test_that("checkAppearance still warns for inconsistent capitalization in a subtraction", {
