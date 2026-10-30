@@ -141,14 +141,16 @@ checkAppearance <- function(x, capitalExclusionList = NULL) {
 # (e.g. "SMIP7-H-SSP2-sens") out of the token list, so their pieces (here "H") do not collide with
 # symbols like the set "h". A set item missing from nonIdentifierSetItems is split like arithmetic.
 .tokenizeGams <- function(lines, nonIdentifierSetItems = NULL) {
-  # split with "+"/"-" counting as identifier characters, so that a set item stays one run
-  coarse  <- strsplit(lines, "[^[:alnum:]_+-]+", perl = TRUE)
-  runs    <- gsub("^[+-]+|[+-]+$", "", unlist(coarse, use.names = FALSE), perl = TRUE)
-  runLine <- rep(seq_along(lines), lengths(coarse))
-  keep    <- !(tolower(runs) %in% tolower(nonIdentifierSetItems))
-  pieces  <- strsplit(runs[keep], "[+-]+", perl = TRUE)
+  # split with "+"/"-" counting as identifier characters, so that a set item stays one token
+  setItemTokens     <- strsplit(lines, "[^[:alnum:]_+-]+", perl = TRUE)
+  potentialSetItems <- gsub("^[+-]+|[+-]+$", "", unlist(setItemTokens, use.names = FALSE), perl = TRUE)
+  lineOfSetItem     <- rep(seq_along(lines), lengths(setItemTokens))
+  isSetItem         <- tolower(potentialSetItems) %in% tolower(nonIdentifierSetItems)
+
+  identifierTokens <- strsplit(potentialSetItems[!isSetItem], "[+-]+", perl = TRUE)
   # the levels keep lines without any token as an empty entry
-  tokens  <- split(unlist(pieces, use.names = FALSE),
-                   factor(rep(runLine[keep], lengths(pieces)), levels = seq_along(lines)))
+  tokens <- split(unlist(identifierTokens, use.names = FALSE),
+                  factor(rep(lineOfSetItem[!isSetItem], lengths(identifierTokens)),
+                         levels = seq_along(lines)))
   return(unname(tokens))
 }
