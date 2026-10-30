@@ -144,17 +144,17 @@ checkAppearance <- function(x, capitalExclusionList = NULL) {
 # Gaps for set items missing from nonIdentifierSetItems: one starting with a number or symbol is still split, and a
 # mis-cased symbol inside one is hidden from the capitalization check.
 .tokenizeGams <- function(lines, symbols, nonIdentifierSetItems = NULL) {
-  tokens <- strsplit(lines, "[^[:alnum:]_]+", perl = TRUE)
-  # the cheap grep first, the backtracking one only on the few lines that can match at all
+  identifierTokens <- strsplit(lines, "[^[:alnum:]_]+", perl = TRUE)
+  # the cheap grep first (`maybe`), the backtracking one only on the few lines that can match at all
   maybe      <- grep("[+-]", lines, perl = TRUE)
-  candidates <- maybe[grepl("[[:alnum:]_][+-]+[[:alnum:]_]", lines[maybe], perl = TRUE)]
-  if (length(candidates) == 0) {
-    return(tokens)
+  potentialSetItems <- maybe[grepl("[[:alnum:]_][+-]+[[:alnum:]_]", lines[maybe], perl = TRUE)]
+  if (length(potentialSetItems) == 0) {
+    return(identifierTokens)
   }
 
-  coarse     <- strsplit(lines[candidates], "[^[:alnum:]_+-]+", perl = TRUE)
+  coarse     <- strsplit(lines[potentialSetItems], "[^[:alnum:]_+-]+", perl = TRUE)
   runs       <- gsub("^[+-]+|[+-]+$", "", unlist(coarse, use.names = FALSE), perl = TRUE)
-  runLine    <- rep(seq_along(candidates), lengths(coarse))
+  runLine    <- rep(seq_along(potentialSetItems), lengths(coarse))
   pieces     <- strsplit(runs, "[+-]+", perl = TRUE)
   pieceVec   <- unlist(pieces, use.names = FALSE)
   pieceRun   <- rep(seq_along(runs), lengths(pieces))
@@ -167,7 +167,7 @@ checkAppearance <- function(x, capitalExclusionList = NULL) {
   isSetItem <- lengths(pieces) > 1 & (isKnown | isGuessed)
 
   keep <- !isSetItem[pieceRun]
-  tokens[candidates] <- unname(split(pieceVec[keep], factor(runLine[pieceRun[keep]],
-                                                            levels = seq_along(candidates))))
-  tokens
+  identifierTokens[potentialSetItems] <- unname(split(pieceVec[keep], factor(runLine[pieceRun[keep]],
+                                                            levels = seq_along(potentialSetItems))))
+  return(identifierTokens)
 }
